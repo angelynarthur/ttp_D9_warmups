@@ -1,0 +1,27 @@
+--find the total sales ($$) and number of orders per month in the database (northwind).
+-- don't worry about months with no sales.
+
+
+WITH order_info AS(SELECT orders.order_id, date(date_trunc('month', orders.order_date)) as month, order_details.unit_price * order_details.quantity * (1-order_details.discount) as sales
+FROM order_details inner join orders on order_details.order_id = orders.order_id)
+
+SELECT month, round(sum(sales)::numeric,2), count(distinct order_id) from order_info
+group by month;
+
+
+
+-- Which month has the highest average sales ($$) over every year of the database?
+--(hint you can either start from scratch or make use of the previous answer)
+
+
+
+
+WITH order_info AS(SELECT sum(order_details.unit_price * order_details.quantity * (1-order_details.discount)) as sales,
+				   extract (year from orders.order_date) as year,
+				   to_char (orders.order_date, 'Mon') as month
+FROM orders inner join order_details ON orders.order_id = order_details.order_id
+				  group by year, month)
+
+SELECT month, round(avg(sales)::numeric,2) as total_by_month from order_info
+group by month
+order by total_by_month desc;

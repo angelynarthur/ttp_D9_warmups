@@ -1,0 +1,62 @@
+--find the total sales ($$) and number of orders per month in the database (northwind).
+-- don't worry about months with no sales.
+WITH date_subtotals as (
+SELECT od.unit_price * od.quantity * (1-od.discount) as sales,
+	Date(date_trunc('month', order_date)),
+	o.order_id
+FROM orders as o
+	JOIN order_details as od ON o.order_id = od.order_id
+)
+SELECT 
+	date::VARCHAR(7) as date_txt_yyyymm,
+	ROUND(SUM(sales)::numeric,2) as sales,
+	COUNT(DISTINCT order_id) as monthly_orders
+FROM date_subtotals
+GROUP BY date
+ORDER BY date;
+
+
+-- Which month has the highest average sales ($$) over every year of the database?
+--(hint you can either start from scratch or make use of the previous answer)
+WITH date_subtotals as (
+SELECT od.unit_price * od.quantity * (1-od.discount) as sales,
+	Date(date_trunc('month', order_date)),
+	o.order_id
+FROM orders as o
+	JOIN order_details as od ON o.order_id = od.order_id
+),
+monthly_totals as (
+SELECT 
+	EXTRACT(month from date) as month,
+	ROUND(SUM(sales)::numeric,2) as sales,
+	COUNT(DISTINCT order_id) as monthly_orders
+FROM date_subtotals
+GROUP BY date
+ORDER BY date)
+
+SELECT to_char(to_timestamp (month::text, 'MM'), 'Mon') as month,
+	ROUND(AVG(sales)::numeric, 2) as monthly_sales
+FROM monthly_totals
+GROUP BY month
+ORDER BY AVG(sales) DESC;
+
+
+-- VERSION 2:
+-- Which month has the highest average sales ($$) over every year of the database?
+--(hint you can either start from scratch or make use of the previous answer)
+WITH date_subtotals as (
+SELECT SUM(od.unit_price * od.quantity * (1-od.discount) ) as sales,
+	EXTRACT(year from order_date) as year,
+	to_char(order_date, 'Mon') as month
+FROM orders as o
+	JOIN order_details as od ON o.order_id = od.order_id
+GROUP BY year, month
+)
+
+SELECT 
+	month,
+	ROUND(AVG(sales)::numeric,2) as monthly_avg_totals
+FROM date_subtotals
+GROUP BY month
+ORDER BY monthly_avg_totals DESC;
+
